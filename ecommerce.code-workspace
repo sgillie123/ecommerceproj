@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "../Project1/admin/ecommerce"
+		},
+		{
+			"path": "../Project1/admin"
+		},
+		{
+			"path": "../Project1/backend"
+		},
+		{
+			"path": "../Project1/frontend"
+		}
+	],
+	"settings": {}
+}
