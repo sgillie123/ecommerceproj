@@ -1,15 +1,26 @@
 import mongoose from "mongoose";
 
 const connectDB = async() => {
+    try {
+        mongoose.connection.on('connected', () => {
+            console.log("MongoDB Connected Successfully");
+        });
 
-    mongoose.connection.on('connected', () => {
-        console.log("DB Connected");
-    })
+        mongoose.connection.on('error', (err) => {
+            console.error('MongoDB Connection Error:', err);
+        });
 
-    await mongoose.connect(`${process.env.MONGODB_URI}/Project1`)
+        mongoose.connection.on('disconnected', () => {
+            console.log('MongoDB Disconnected');
+        });
 
+        const conn = await mongoose.connect(`${process.env.MONGODB_URI}/Project1`);
 
-
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+    } catch (error) {
+        console.error('Error connecting to MongoDB:', error);
+        process.exit(1);
+    }
 }
 
 export default connectDB;

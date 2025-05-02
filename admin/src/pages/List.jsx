@@ -57,14 +57,14 @@ const List = ({ token }) => {
       // Update both products in a single request
       const response = await axios.post(`${backendUrl}/api/product/update`, {
         id: productId,
-        displayOrder: currentIndex
+        displayOrder: newIndex
       }, { headers: { token } })
 
       if (response.data.success) {
         // Update the other product
         await axios.post(`${backendUrl}/api/product/update`, {
-          id: updatedList[newIndex]._id,
-          displayOrder: newIndex
+          id: updatedList[currentIndex]._id,
+          displayOrder: currentIndex
         }, { headers: { token } })
 
         setList(updatedList)
@@ -166,10 +166,38 @@ const List = ({ token }) => {
         return
       }
 
+      // Validate required fields
+      if (!editForm.name || !editForm.description || !editForm.category || !editForm.subCategory) {
+        toast.error("Please fill in all required fields")
+        setIsSubmitting(false)
+        return
+      }
+
+      // Validate price
+      if (!editForm.price || isNaN(editForm.price) || editForm.price <= 0) {
+        toast.error("Please enter a valid price")
+        setIsSubmitting(false)
+        return
+      }
+
+      // Handle sizes based on category
+      let sizes = editForm.sizes
+      if (editForm.category === "Cakes") {
+        sizes = ["CAKE"]
+      } else if (!sizes || sizes.length === 0) {
+        toast.error("Please select at least one size option")
+        setIsSubmitting(false)
+        return
+      }
+
       const updateData = {
         id: editingProduct._id,
         ...editForm,
+        sizes,
+        price: Number(editForm.price)
       }
+
+      console.log("Sending update with data:", updateData); // Debug log
 
       const response = await axios.post(`${backendUrl}/api/product/update`, updateData, {
         headers: { token }
@@ -185,7 +213,7 @@ const List = ({ token }) => {
       }
     } catch (error) {
       console.error("Error updating product:", error)
-      toast.error(error.message || "Failed to update product")
+      toast.error(error.response?.data?.message || "Failed to update product")
     } finally {
       setIsSubmitting(false)
     }

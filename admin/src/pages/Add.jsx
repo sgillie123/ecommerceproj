@@ -50,22 +50,56 @@ const Add = ({ token }) => {
       image4 && formData.append("image4", image4)
 
       const apiUrl = backendUrl + "/api/product/add"
+      
+      // Validate required fields
+      if (!name || !description || !price || !category || !subcategory) {
+        toast.error("Please fill in all required fields")
+        return
+      }
 
-      const response = await axios.post(apiUrl, formData, { headers: { token } })
-      if (response.data.success) {
-        toast.success(response.data.message)
-        setName("")
-        setDescription("")
-        setImage1("")
-        setImage2("")
-        setImage3("")
-        setImage4("")
-      } else {
-        toast.error(response.data.message)
+      // Validate price
+      const priceValue = Number(price)
+      if (isNaN(priceValue) || priceValue <= 0) {
+        toast.error("Please enter a valid price")
+        return
+      }
+
+      if (!image1) {
+        toast.error("At least one image is required")
+        return
+      }
+
+      try {
+        const response = await axios.post(apiUrl, formData, {
+          headers: {
+            token: token,
+          },
+        })
+
+        if (response.data.success) {
+          toast.success("Product added successfully")
+          // Reset form
+          setName("")
+          setDescription("")
+          setPrice("")
+          setCategory("")
+          setSubcategory("Cookies")
+          setSizes([])
+          setBestseller(false)
+          setImage1(false)
+          setImage2(false)
+          setImage3(false)
+          setImage4(false)
+        } else {
+          toast.error(response.data.message || "Failed to add product")
+        }
+      } catch (error) {
+        console.error("Error adding product:", error)
+        toast.error(error.response?.data?.message || "Failed to add product")
       }
     } catch (error) {
-      console.log(error)
-      toast.error(error.message)
+      console.error("Form submission error:", error)
+      toast.error("Failed to process form submission")
     }
   }
 

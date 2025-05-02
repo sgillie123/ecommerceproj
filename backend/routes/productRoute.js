@@ -9,7 +9,7 @@ productRouter.post('/add', adminAuth,upload.fields([{name:'image1', maxCount:1},
 productRouter.post('/remove',adminAuth,removeProduct);
 productRouter.post('/single', singleProduct);
 productRouter.get('/list', listProducts);
-productRouter.post('/update', updateProduct);
+productRouter.post('/update', adminAuth, updateProduct);
 
 
 

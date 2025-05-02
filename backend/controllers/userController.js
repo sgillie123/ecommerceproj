@@ -15,27 +15,32 @@ const loginUser = async (req, res) => {
         const user = await userModel.findOne({email});
         if (!user) {
             return res.json({success:false, message:"User does not exist!"})
-
         }
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (isMatch) {
-            
             const token = createToken(user._id)
-            res.json({success:true,token})
-
-        }
-        else {
+            res.json({
+                success: true,
+                token,
+                user: {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    phone: user.phone,
+                    address: user.address
+                }
+            })
+        } else {
             res.json({success:false, message:"Invalid credentials!"})
-
         }
 
     } catch (error) {
         console.log(error);
         res.json({success:false,message:error.message})
     }
-
-    
 }
 
 // Route for user registration
@@ -100,7 +105,7 @@ const adminLogin = async (req, res) => {
 // Route for user profile update
 const updateUser = async (req, res) => {
     try {
-        const userId = req.userId;
+        const userId = req.user._id;
         const { firstName, lastName, email, phone, address } = req.body;
 
         // Find user by ID
@@ -125,11 +130,59 @@ const updateUser = async (req, res) => {
 
         await user.save();
 
-        res.json({ success: true, message: "Profile updated successfully", user });
+        // Return only necessary user data
+        const userData = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+            address: user.address
+        };
+
+        res.json({ success: true, message: "Profile updated successfully", user: userData });
     } catch (error) {
-        console.error(error);
+        console.error('Profile update error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-export { loginUser, registerUser, adminLogin, updateUser }
+// Route for verifying token and refreshing user data
+const verifyToken = async (req, res) => {
+    try {
+        const { token } = req.headers
+        if (!token) {
+            return res.json({ success: false, message: "No token provided" })
+        }
+
+        // Verify token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        
+        // Get fresh user data
+        const user = await userModel.findById(decoded.id)
+        if (!user) {
+            return res.json({ success: false, message: "User not found" })
+        }
+
+        // Return success with fresh user data
+        res.json({ 
+            success: true, 
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                phone: user.phone,
+                address: user.address
+            }
+        })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: "Invalid token" })
+    }
+}
+
+export { loginUser, registerUser, adminLogin, updateUser, verifyToken }

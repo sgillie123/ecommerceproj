@@ -5,16 +5,16 @@ import userModel from "../models/userModel.js"
 const addReview = async (req, res) => {
   try {
     const { productId, rating, comment } = req.body
-    const userId = req.userId
+    const userId = req.user._id
 
     // Get user name from database
     const user = await userModel.findById(userId)
     if (!user) {
-      return res.json({ success: false, message: "User not found" })
+      return res.status(400).json({ success: false, message: "User not found" })
     }
 
     // Create a new review
-    const userName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email
+    const userName = user.name || user.email.split('@')[0]
 
     const newReview = new reviewModel({
       productId,
@@ -28,8 +28,8 @@ const addReview = async (req, res) => {
     await newReview.save()
     res.json({ success: true, message: "Review added successfully", review: newReview })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
+    console.error("Review error:", error)
+    res.status(500).json({ success: false, message: error.message })
   }
 }
 
@@ -55,8 +55,8 @@ const getProductReviews = async (req, res) => {
       },
     })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
+    console.error("Get reviews error:", error)
+    res.status(500).json({ success: false, message: error.message })
   }
 }
 

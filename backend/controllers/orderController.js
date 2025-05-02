@@ -12,27 +12,49 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 // Placing orders using COD
 const placeOrder = async (req, res) => {
   try {
-    const { userId, items, amount, address } = req.body
+    const { userId, items, amount, address, paymentMethod } = req.body;
+
+    // Validate required fields
+    if (!userId || !items || !amount || !address) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields. Please provide userId, items, amount, and address."
+      });
+    }
+
+    // Validate address object
+    if (!address.street || !address.city || !address.state || !address.country || !address.zipcode) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid address. Please provide street, city, state, country, and zipcode."
+      });
+    }
 
     const orderData = {
       userId,
       items,
       amount,
       address,
-      paymentMethod: "COD",
+      paymentMethod: paymentMethod || "COD",
       payment: false,
       date: Date.now(),
-    }
-    const newOrder = new orderModel(orderData)
-    await newOrder.save()
+      status: "Order Placed"
+    };
 
-    await userModel.findByIdAndUpdate(userId, { cartData: {} })
-    res.json({ success: true, message: "Order Placed" })
+    console.log('Creating order with data:', orderData); // Debug log
+
+    const newOrder = new orderModel(orderData);
+    await newOrder.save();
+
+    // Clear user's cart
+    await userModel.findByIdAndUpdate(userId, { cartData: {} });
+
+    res.json({ success: true, message: "Order Placed Successfully" });
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
+    console.error('Order placement error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
-}
+};
 
 // Placing orders using Stripe
 const placeOrderStripe = async (req, res) => {
@@ -113,43 +135,31 @@ const placeOrderStripe = async (req, res) => {
 // Verify Stripe payment
 const verifyStripe = async (req, res) => {
   try {
-    const { orderId, success, userId } = req.body
-
-    console.log("Verifying Stripe payment:", { orderId, success, userId })
+    const { orderId, success } = req.body;
 
     if (!orderId) {
-      return res.status(400).json({ success: false, message: "Order ID is required" })
+      return res.status(400).json({ success: false, message: 'Order ID is required' });
     }
 
-    if (success === "true") {
-      // Update the order to mark payment as successful
-      const updatedOrder = await orderModel.findByIdAndUpdate(
-        orderId,
-        {
-          payment: true,
-          status: "Paid", // Add status field to indicate payment is complete
-        },
-        { new: true }, // Return the updated document
-      )
+    const order = await orderModel.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
 
-      console.log("Updated order:", updatedOrder)
-
-      // Clear the user's cart if userId is provided
-      if (userId) {
-        await userModel.findByIdAndUpdate(userId, { cartData: {} })
-      }
-
-      return res.json({ success: true, message: "Payment verified successfully" })
+    if (success === 'true') {
+      order.payment = true;
+      order.status = 'Order Placed';
+      await order.save();
+      res.json({ success: true, message: 'Payment verified successfully' });
     } else {
-      // If payment failed, delete the order
-      await orderModel.findByIdAndDelete(orderId)
-      return res.json({ success: false, message: "Payment was not successful" })
+      await orderModel.findByIdAndDelete(orderId);
+      res.json({ success: false, message: 'Payment failed' });
     }
   } catch (error) {
-    console.log("Verification error:", error)
-    return res.status(500).json({ success: false, message: error.message })
+    console.error('Stripe verification error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
-}
+};
 
 // All orders for Admin Panel
 const allOrders = async (req, res) => {
@@ -165,7 +175,8 @@ const allOrders = async (req, res) => {
 // User order data for frontend
 const userOrders = async (req, res) => {
   try {
-    const { userId } = req.body
+    // Get userId from the authenticated user in the request
+    const userId = req.user._id
     const orders = await orderModel.find({ userId }).sort({ date: -1 }) // Sort by date, newest first
     res.json({ success: true, orders })
   } catch (error) {
@@ -186,4 +197,32 @@ const updateStatus = async (req, res) => {
   }
 }
 
-export { placeOrder, placeOrderStripe, allOrders, userOrders, updateStatus, verifyStripe }
+// Delete order
+const deleteOrder = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+    const userId = req.user._id;
+
+    // Find the order
+    const order = await orderModel.findById(orderId);
+    
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    // Check if user is admin or order belongs to user
+    if (!req.headers.isAdmin && order.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized to delete this order" });
+    }
+
+    // Delete the order
+    await orderModel.findByIdAndDelete(orderId);
+    
+    res.json({ success: true, message: "Order deleted successfully" });
+  } catch (error) {
+    console.error('Delete order error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export { placeOrder, placeOrderStripe, allOrders, userOrders, updateStatus, verifyStripe, deleteOrder }

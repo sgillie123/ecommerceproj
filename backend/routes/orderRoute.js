@@ -14,7 +14,7 @@ orderRouter.post('/place',authUser,placeOrder)
 orderRouter.post('/stripe',authUser,placeOrderStripe)
 
 // User Feature
-orderRouter.post('/userorders', authUser, userOrders) 
+orderRouter.post('/userorders', authUser, userOrders)
 
 // Verify Payment
 orderRouter.post('/verifyStripe', authUser, verifyStripe)

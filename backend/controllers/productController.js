@@ -5,6 +5,23 @@ import productModel from "../models/productModel.js"
 const addProduct = async (req,res) => {
     try {
         const {name, description, price, category, subCategory, sizes, bestseller, displayOrder } = req.body
+
+        // Validate required fields
+        if (!name || !description || !price || !category || !subCategory) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required"
+            });
+        }
+
+        // Validate files
+        if (!req.files || !req.files.image1) {
+            return res.status(400).json({
+                success: false,
+                message: "At least one image is required"
+            });
+        }
+
         const image1 = req.files.image1 && req.files.image1[0]
         const image2 = req.files.image2 && req.files.image2[0]
         const image3 = req.files.image3 && req.files.image3[0]
@@ -26,20 +43,21 @@ const addProduct = async (req,res) => {
             subCategory,
             price: Number(price),
             bestseller: bestseller === "true" ? true : false,
-            sizes: JSON.parse(sizes),
+            sizes: Array.isArray(sizes) ? sizes : JSON.parse(sizes || "[]"),
             image: imagesUrl,
             displayOrder: Number(displayOrder) || 0,
             date: Date.now()
         }
-        console.log(productData);
-        
+        console.log('Creating product with data:', productData); // Debug log
+
         const product = new productModel(productData);
         await product.save()
         
-
-        res.json({success:true,message:"Product Added"})
+        console.log('Product saved successfully:', product); // Debug log
+        res.status(201).json({success:true, message:"Product Added", product})
     } catch (error) {
-        res.json({success:false,message:error.message})
+        console.error('Error adding product:', error); // Debug log
+        res.status(500).json({success:false, message: error.message})
     }
 }
 

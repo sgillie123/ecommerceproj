@@ -27,16 +27,13 @@ const Orders = ({ token }) => {
       const apiUrlHand = `${backendUrl}/api/order/status`;
       const response = await axios.post(apiUrlHand, {orderId, status:event.target.value}, {headers:{token}});
       if (response.data.success) {
-        await fetchAllOrders()
-        
+        await fetchAllOrders();
       }
     } catch (error) {
       console.log(error);
-      toast.error(response.data.message)
-      
+      toast.error(response.data.message);
     }
-    
-  }
+  };
 
   useEffect(() => {
     fetchAllOrders();
@@ -131,13 +128,19 @@ const Orders = ({ token }) => {
                   </span>
                 </div>
 
-                <select onChange={(event)=>statusHandler(event,order._id)} value={order.status} className="w-full mt-3 p-2 border border-[#C586A5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#C586A5] text-sm">
-                  <option value="Order Placed">Order Placed</option>
-                  <option value="Packing">Packing</option>
-                  <option value="Shipped">Shipped</option>
-                  <option value="Out for delivery">Out for delivery</option>
-                  <option value="Delivered">Delivered</option>
-                </select>
+                <div className="mt-3">
+                  <select 
+                    onChange={(event)=>statusHandler(event,order._id)} 
+                    value={order.status} 
+                    className="w-full p-2 border border-[#C586A5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#C586A5] text-sm"
+                  >
+                    <option value="Order Placed">Order Placed</option>
+                    <option value="Packing">Packing</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Out for delivery">Out for delivery</option>
+                    <option value="Delivered">Delivered</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>

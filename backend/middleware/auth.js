@@ -10,19 +10,19 @@ const authUser = async (req, res, next) => {
     
     try {
         // 1. Verify token and decode user ID
-        const token_decode = jwt.verify(token, process.env.JWT_SECRET)
+        const decoded = jwt.verify(token, process.env.JWT_SECRET)
         
-        // 2. Check if user exists in DB (optional but recommended)
-        const user = await userModel.findById(token_decode.id)
+        // 2. Check if user exists in DB
+        const user = await userModel.findById(decoded.id)
         if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' })
+            return res.status(401).json({ success: false, message: 'User not found' })
         }
 
-        // 3. Attach userId to req (NOT req.body!)
-        req.userId = token_decode.id // ✅ Critical fix
+        // 3. Attach user object to request
+        req.user = user
         next()
     } catch (error) {
-        console.log(error)
+        console.error('Auth error:', error)
         res.status(401).json({ success: false, message: 'Invalid token' })
     }
 }
